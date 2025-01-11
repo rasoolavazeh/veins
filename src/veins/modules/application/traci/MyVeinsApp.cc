@@ -21,6 +21,8 @@
 //
 
 #include "veins/modules/application/traci/MyVeinsApp.h"
+#include "rapidjson/writer.h"
+#include "veins/modules/messages/MyMessage_m.h"
 
 using namespace veins;
 
@@ -32,8 +34,12 @@ void MyVeinsApp::initialize(int stage)
     if (stage == 0) {
         // Initializing members and pointers of your application goes here
         EV << "Initializing " << par("appName").stringValue() << std::endl;
-    }
-    else if (stage == 1) {
+
+        lastPacketReceiveTime = simTime().inUnit(SimTimeUnit::SIMTIME_NS);
+        attacker = (dblrand() <= par("attackerProbability").doubleValue());
+
+        scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
+    } else if (stage == 1) {
         // Initializing members that require initialized other modules goes here
     }
 }
@@ -48,6 +54,45 @@ void MyVeinsApp::onBSM(DemoSafetyMessage* bsm)
 {
     // Your application has received a beacon message from another car or RSU
     // code for handling the message goes here
+    EV_DEBUG << mac->getMACAddress() << ": onBSM" << endl;
+    MyMessage* myMessage = check_and_cast<MyMessage*>(bsm);
+
+    rapidjson::StringBuffer s;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+
+    writer.StartObject();
+    writer.Key("messageId");
+    writer.Uint(myMessage->getId());
+    writer.Key("senderAddress");
+    writer.Uint(myMessage->getSenderAddress());
+    writer.Key("receiverAddress");
+    writer.Uint(mac->getMACAddress());
+    writer.Key("creationTime");
+    writer.Uint(myMessage->getCreationTime().inUnit(SimTimeUnit::SIMTIME_NS));
+    writer.Key("sendingTime");
+    writer.Uint(myMessage->getSendingTime().inUnit(SimTimeUnit::SIMTIME_NS));
+    writer.Key("arrivalTime");
+    writer.Uint(myMessage->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_NS));
+    writer.Key("duration");
+    writer.Uint(myMessage->getDuration().inUnit(SimTimeUnit::SIMTIME_NS));
+    writer.Key("bitLength");
+    writer.Uint(myMessage->getBitLength());
+    writer.Key("byteLength");
+    writer.Uint(myMessage->getByteLength());
+    writer.Key("consecutivePacketTime");
+    writer.Uint(simTime().inUnit(SimTimeUnit::SIMTIME_NS) - lastPacketReceiveTime);
+    writer.EndObject();
+
+    std::ostringstream out_json; out_json << par("logsFileName").stdstringValue();
+    logsFileName = out_json.str();
+
+    std::ofstream out_stream;
+    out_stream.open(logsFileName, std::ios_base::app);
+    if(out_stream.is_open())
+        out_stream << s.GetString() << std::endl;
+    else
+        EV_DEBUG << "Warning, logs file stream is closed";
+    out_stream.close();
 }
 
 void MyVeinsApp::onWSM(BaseFrame1609_4* wsm)
@@ -65,8 +110,18 @@ void MyVeinsApp::onWSA(DemoServiceAdvertisment* wsa)
 void MyVeinsApp::handleSelfMsg(cMessage* msg)
 {
     DemoBaseApplLayer::handleSelfMsg(msg);
-    // this method is for self messages (mostly timers)
-    // it is important to call the DemoBaseApplLayer function for BSM and WSM transmission
+    EV_DEBUG << mac->getMACAddress() << ": handleSelfMsg" << endl;
+
+    if (attacker) {
+        for (int i = 0; i < 5; i++) {
+            MyMessage* wsm = new MyMessage();
+            populateWSM(wsm);
+            wsm->setSenderAddress(mac->getMACAddress());
+            wsm->setMyData("Hello World!");
+            sendDown(wsm);
+        }
+    }
+    scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
 }
 
 void MyVeinsApp::handlePositionUpdate(cObject* obj)

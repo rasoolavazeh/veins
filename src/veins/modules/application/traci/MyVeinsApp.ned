@@ -30,4 +30,6 @@ simple MyVeinsApp extends DemoBaseApplLayer
 {
     @class(veins::MyVeinsApp);
     string appName = default("My first Veins App!");
+    string logsFileName = default("logs.json");
+    double attackerProbability = default(0);
 }

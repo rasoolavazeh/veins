@@ -23,7 +23,6 @@
 #pragma once
 
 #include "veins/veins.h"
-
 #include "veins/modules/application/ieee80211p/DemoBaseApplLayer.h"
 
 using namespace omnetpp;
@@ -44,6 +43,11 @@ class VEINS_API MyVeinsApp : public DemoBaseApplLayer {
 public:
     void initialize(int stage) override;
     void finish() override;
+
+protected:
+    long lastPacketReceiveTime;
+    bool attacker;
+    std::string logsFileName;
 
 protected:
     void onBSM(DemoSafetyMessage* bsm) override;
