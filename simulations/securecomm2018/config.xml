@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <AnalogueModels>
+            <AnalogueModel type="TwoRayInterferenceModel">
+            <parameter name="DielectricConstant" type="double" value="1.02"/>
+            </AnalogueModel>
+
+        <AnalogueModel type="SimpleObstacleShadowing">
+            <parameter name="carrierFrequency" type="double" value="5.890e+9"/>
+            <obstacles>
+                <type id="building" db-per-cut="9" db-per-meter="0.4" />
+            </obstacles>
+        </AnalogueModel>
+
+     <AnalogueModel type="JakesFading">
+                <!-- Number of fading paths per host -->
+                <parameter name="fadingPaths" type="long" value="3"/>
+
+                <!-- f-selectivity: mean delay spread in seconds -->
+                <parameter name="delayRMS" type="double" value="0.0001"/>
+
+                <!-- Interval in which to define attenuation for in seconds -->
+                <parameter name="interval" type="double" value="0.001"/>
+        </AnalogueModel>
+
+        <AnalogueModel type="LogNormalShadowing">
+                <!-- Mean attenuation in dB -->
+                <parameter name="mean" type="double" value="0.5"/>
+
+                <!-- Standard deviation of the attenuation in dB -->
+                <parameter name="stdDev" type="double" value="0.25"/>
+
+                <!-- Interval in which to define attenuation for in seconds -->
+                <parameter name="interval" type="double" value="0.001"/>
+        </AnalogueModel>
+    </AnalogueModels>
+    <Decider type="Decider80211p">
+        <!-- The center frequency on which the phy listens-->
+        <parameter name="centerFrequency" type="double" value="5.890e9"/>
+    </Decider>
+</root>
