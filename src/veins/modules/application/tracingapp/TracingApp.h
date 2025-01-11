@@ -18,11 +18,11 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#ifndef __VEINS_MYVEINSAPP_H_
-#define __VEINS_MYVEINSAPP_H_
+#pragma once
 
 #include <omnetpp.h>
-#include "veins/modules/application/ieee80211p/BaseWaveApplLayer.h"
+#include <veins/veins.h>
+#include "veins/modules/application/ieee80211p/DemoBaseApplLayer.h"
 
 #define TRACING_SEPARATOR ','
 #define TRACING_QUOTECHAR '\"'
@@ -42,7 +42,7 @@ using namespace omnetpp;
 #define TYPE_BEACON 3
 #define TYPE_TRUTH_BEACON 4
 
-class TracingApp : public BaseWaveApplLayer {
+class TracingApp : public veins::DemoBaseApplLayer {
     private:
         std::string traceJSONFile;
         std::string traceGroundTruthJSONFile;
@@ -53,20 +53,18 @@ class TracingApp : public BaseWaveApplLayer {
         virtual void finish();
 
     protected:
-        virtual void onBSM(BasicSafetyMessage* bsm);
-        virtual void onWSM(WaveShortMessage* wsm);
-        virtual void onWSA(WaveServiceAdvertisment* wsa);
+        virtual void onBSM(veins::DemoSafetyMessage* bsm);
+        virtual void onWSM(veins::BaseFrame1609_4* wsm);
+        virtual void onWSA(veins::DemoServiceAdvertisment* wsa);
 
         virtual void handleSelfMsg(cMessage* msg);
-        virtual void populateWSM(WaveShortMessage* wsm, int rcvId, int serial);
+        virtual void populateWSM(veins::BaseFrame1609_4* wsm, veins::LAddress::L2Type rcvId, int serial);
         virtual void handlePositionUpdate(cObject* obj);
 
         virtual const int getMyID() const;
-        virtual const Coord getMyPosition() const;
+        virtual const veins::Coord getMyPosition() const;
         virtual const double getMySpeed() const;
         virtual const double getAngle() const;
 
         virtual const void traceJSON(std::string file, std::string JSONObject) const;
     };
-
-#endif

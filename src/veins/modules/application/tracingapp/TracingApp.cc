@@ -32,7 +32,7 @@ const void TracingApp::traceJSON(std::string file, std::string JSONObject) const
     if(out_stream.is_open())
         out_stream << JSONObject << std::endl;
     else
-        DBG_APP << "Warning, tracing stream is closed";
+        EV_DEBUG << "Warning, tracing stream is closed";
     out_stream.close();
 }
 
@@ -40,7 +40,7 @@ const int TracingApp::getMyID() const {
     return getParentModule()->getIndex(); //Car.ned's index.
 }
 
-const Coord TracingApp::getMyPosition() const {
+const veins::Coord TracingApp::getMyPosition() const {
     return mobility->getPositionAt(simTime());
 }
 
@@ -49,11 +49,11 @@ const double TracingApp::getMySpeed() const {
 }
 
 const double TracingApp::getAngle() const {
-    return mobility->getAngleRad();
+    return mobility->getHeading().getRad();
 }
 
 void TracingApp::initialize(int stage) {
-    BaseWaveApplLayer::initialize(stage);
+    DemoBaseApplLayer::initialize(stage);
     if (stage == 0) {
         //Initializing members and pointers of your application goes here
         EV << "Initializing " << par("appName").stringValue() << std::endl;
@@ -75,16 +75,16 @@ void TracingApp::setFileNames(std::string traceJSONFile, std::string traceGround
 }
 
 void TracingApp::finish() {
-    BaseWaveApplLayer::finish();
+    DemoBaseApplLayer::finish();
     //statistics recording goes here
 
 }
 
-void TracingApp::onBSM(BasicSafetyMessage* bsm) {
+void TracingApp::onBSM(veins::DemoSafetyMessage* bsm) {
     //Your application has received a beacon message from another car or RSU
     //code for handling the message goes here
-    Coord pos = bsm->getSenderPos();
-    Coord spd = bsm->getSenderSpeed();
+    veins::Coord pos = bsm->getSenderPos();
+    veins::Coord spd = bsm->getSenderSpeed();
 
     StringBuffer s;
     Writer<StringBuffer> writer(s);
@@ -98,7 +98,7 @@ void TracingApp::onBSM(BasicSafetyMessage* bsm) {
     writer.Key("sendTime");
     writer.Double(bsm->getTimestamp().dbl());
     writer.Key("sender");
-    writer.Uint(bsm->getSenderAddress());
+    writer.Uint(bsm->getSenderModule()->getIndex());
     writer.Key("messageID");
     writer.Uint(bsm->getTreeId());
 
@@ -130,37 +130,37 @@ void TracingApp::onBSM(BasicSafetyMessage* bsm) {
     writer.Double(0.0);
     writer.EndArray();
 
-    writer.Key("RSSI");
-    writer.Double(bsm->getRSSI());
+//    writer.Key("RSSI");
+//    writer.Double(bsm->getRSSI());
 
     writer.EndObject();
 
     traceJSON(traceJSONFile, s.GetString());
 }
 
-void TracingApp::onWSM(WaveShortMessage* wsm) {
+void TracingApp::onWSM(veins::BaseFrame1609_4* wsm) {
     //Your application has received a data message from another car or RSU
     //code for handling the message goes here, see TraciDemo11p.cc for examples
-
+    EV << "onWSM" << endl;
 }
 
-void TracingApp::onWSA(WaveServiceAdvertisment* wsa) {
+void TracingApp::onWSA(veins::DemoServiceAdvertisment* wsa) {
     //Your application has received a service advertisement from another car or RSU
     //code for handling the message goes here, see TraciDemo11p.cc for examples
-
+    EV << "onWSA" << endl;
 }
 
 void TracingApp::handleSelfMsg(cMessage* msg) {
-    BaseWaveApplLayer::handleSelfMsg(msg);
+    DemoBaseApplLayer::handleSelfMsg(msg);
     //this method is for self messages (mostly timers)
     //it is important to call the BaseWaveApplLayer function for BSM and WSM transmission
 }
 
-void TracingApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial){
-    BaseWaveApplLayer::populateWSM(wsm, rcvId, serial);
-    if(BasicSafetyMessage* bsm = dynamic_cast<BasicSafetyMessage*>(wsm)){
-        Coord pos = bsm->getSenderPos();
-        Coord spd = bsm->getSenderSpeed();
+void TracingApp::populateWSM(veins::BaseFrame1609_4* wsm, veins::LAddress::L2Type rcvId, int serial){
+    DemoBaseApplLayer::populateWSM(wsm, rcvId, serial);
+    if(veins::DemoSafetyMessage* bsm = dynamic_cast<veins::DemoSafetyMessage*>(wsm)){
+        veins::Coord pos = bsm->getSenderPos();
+        veins::Coord spd = bsm->getSenderSpeed();
         
         StringBuffer s;
         Writer<StringBuffer> writer(s);
@@ -172,7 +172,7 @@ void TracingApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial){
         writer.Key("sendTime");
         writer.Double(bsm->getTimestamp().dbl());
         writer.Key("sender");
-        writer.Uint(bsm->getSenderAddress());
+        writer.Uint(bsm->getSenderModuleId());
         writer.Key("messageID");
         writer.Uint(bsm->getTreeId());
 
@@ -211,7 +211,7 @@ void TracingApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial){
 }
 
 void TracingApp::handlePositionUpdate(cObject* obj) {
-    BaseWaveApplLayer::handlePositionUpdate(obj);
+    DemoBaseApplLayer::handlePositionUpdate(obj);
     //the vehicle has moved. Code that reacts to new positions goes here.
     //member variables such as currentPosition and currentSpeed are updated in the parent class
 

@@ -45,10 +45,10 @@ void AttackerApp::initialize(int stage) {
 }
 
 void AttackerApp::handleSelfMsg(cMessage* msg) {
-    // code is based on BaseWaveApplLayer::handleSelfMsg(cMessage* msg)
+    // code is based on veins::DemoBaseApplLayer::handleSelfMsg(cMessage* msg)
     switch (msg->getKind()) {
         case SEND_BEACON_EVT: {
-            BasicSafetyMessage* bsm = new BasicSafetyMessage();
+            veins::DemoSafetyMessage* bsm = new veins::DemoSafetyMessage();
             populateWSM(bsm);
 
             // attacker
@@ -61,7 +61,7 @@ void AttackerApp::handleSelfMsg(cMessage* msg) {
             break;
         }
         case SEND_WSA_EVT:   {
-            WaveServiceAdvertisment* wsa = new WaveServiceAdvertisment();
+            veins::DemoServiceAdvertisment* wsa = new veins::DemoServiceAdvertisment();
             populateWSM(wsa);
 
             // add attacks for WSA messages here (currently no attacks)
@@ -72,18 +72,18 @@ void AttackerApp::handleSelfMsg(cMessage* msg) {
         }
         default: {
             if (msg)
-                DBG_APP << "APP: Error: Got Self Message of unknown kind! Name: " << msg->getName() << endl;
+                EV_DEBUG << "APP: Error: Got Self Message of unknown kind! Name: " << msg->getName() << endl;
             break;
         }
     }
 }
 
-// code is based on TracingApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial)
-void AttackerApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial) {
-    BaseWaveApplLayer::populateWSM(wsm, rcvId, serial);
-    if (BasicSafetyMessage* bsm = dynamic_cast<BasicSafetyMessage*>(wsm)) {
-        Coord pos = bsm->getSenderPos();
-        Coord spd = bsm->getSenderSpeed();
+// code is based on TracingApp::populateWSM(veins::BaseFrame1609_4* wsm, int rcvId, int serial)
+void AttackerApp::populateWSM(veins::BaseFrame1609_4* wsm, veins::LAddress::L2Type rcvId, int serial) {
+    veins::DemoBaseApplLayer::populateWSM(wsm, rcvId, serial);
+    if (veins::DemoSafetyMessage* bsm = dynamic_cast<veins::DemoSafetyMessage*>(wsm)) {
+        veins::Coord pos = bsm->getSenderPos();
+        veins::Coord spd = bsm->getSenderSpeed();
 
         StringBuffer s;
         Writer<StringBuffer> writer(s);
@@ -94,8 +94,8 @@ void AttackerApp::populateWSM(WaveShortMessage* wsm, int rcvId, int serial) {
         writer.Uint(TYPE_TRUTH_BEACON);
         writer.Key("time");
         writer.Double(simTime().dbl());
-        writer.Key("sender");
-        writer.Uint(bsm->getSenderAddress());
+//        writer.Key("sender");
+//        writer.Uint(bsm->getSenderModule()->getId());
         writer.Key("attackerType");
         writer.Uint(attackerType);
         writer.Key("messageID");
@@ -143,7 +143,7 @@ void AttackerApp::handlePositionUpdate(cObject* obj) {
 }
 
 //TODO: implement more attacker
-void AttackerApp::attackBSM(BasicSafetyMessage* bsm) {
+void AttackerApp::attackBSM(veins::DemoSafetyMessage* bsm) {
     switch(attackerType)
     {
     case ATTACKER_TYPE_CONST_POSITION:
@@ -168,85 +168,85 @@ void AttackerApp::attackBSM(BasicSafetyMessage* bsm) {
         attackSetRandomDynamicSpeed(bsm);
         break;
     default:
-        DBG_APP << "Unknown attacker type! Type: " << attackerType << endl;
+        EV_DEBUG << "Unknown attacker type! Type: " << attackerType << endl;
     }
 }
 
-void AttackerApp::attackSetConstSpeed(BasicSafetyMessage* bsm) {
+void AttackerApp::attackSetConstSpeed(veins::DemoSafetyMessage* bsm) {
     attackSetConstSpeed(bsm, par("attackerXSpeed").doubleValue(), par("attackerYSpeed").doubleValue());
 }
 
-void AttackerApp::attackSetConstSpeed(BasicSafetyMessage* bsm, double xSpeed, double ySpeed) {
-    DBG_APP << "Attack: SetConstSpeed (x=" << xSpeed << ", y=" << ySpeed << ")" << std::endl;
-    bsm->setSenderSpeed(Coord(xSpeed, ySpeed, (bsm->getSenderSpeed()).z));
+void AttackerApp::attackSetConstSpeed(veins::DemoSafetyMessage* bsm, double xSpeed, double ySpeed) {
+    EV_DEBUG << "Attack: SetConstSpeed (x=" << xSpeed << ", y=" << ySpeed << ")" << std::endl;
+    bsm->setSenderSpeed(veins::Coord(xSpeed, ySpeed, (bsm->getSenderSpeed()).z));
 }
 
-void AttackerApp::attackSetDynamicSpeed(BasicSafetyMessage* bsm, double xSpeed, double ySpeed) {
+void AttackerApp::attackSetDynamicSpeed(veins::DemoSafetyMessage* bsm, double xSpeed, double ySpeed) {
     double newXSpeed = (bsm->getSenderSpeed()).x + xSpeed;
     double newYSpeed = (bsm->getSenderSpeed()).y + ySpeed;
 
-    DBG_APP << "Attack: SetDynamicSpeed (x=" << newXSpeed << ", y=" << newYSpeed << ")" << std::endl;
-    bsm->setSenderSpeed(Coord(newXSpeed, newYSpeed, (bsm->getSenderSpeed()).z));
+    EV_DEBUG << "Attack: SetDynamicSpeed (x=" << newXSpeed << ", y=" << newYSpeed << ")" << std::endl;
+    bsm->setSenderSpeed(veins::Coord(newXSpeed, newYSpeed, (bsm->getSenderSpeed()).z));
 }
 
-void AttackerApp::attackSetRandomDynamicSpeed(BasicSafetyMessage* bsm) {
-    Coord randomSpeedInRange = getRandomSpeedInRange();
+void AttackerApp::attackSetRandomDynamicSpeed(veins::DemoSafetyMessage* bsm) {
+    veins::Coord randomSpeedInRange = getRandomSpeedInRange();
     attackSetDynamicSpeed(bsm, randomSpeedInRange.x, randomSpeedInRange.y);
 }
 
-void AttackerApp::attackSetConstPosition(BasicSafetyMessage* bsm) {
+void AttackerApp::attackSetConstPosition(veins::DemoSafetyMessage* bsm) {
     attackSetConstPosition(bsm, par("attackerXPos").doubleValue(), par("attackerYPos").doubleValue());
 }
 
-void AttackerApp::attackSetConstPosition(BasicSafetyMessage* bsm, double xPos, double yPos) {
-    DBG_APP << "Attack: SetConstPosition (x=" << xPos << ", y=" << yPos << ")" << std::endl;
-    bsm->setSenderPos(Coord(xPos, yPos, (bsm->getSenderPos()).z));
+void AttackerApp::attackSetConstPosition(veins::DemoSafetyMessage* bsm, double xPos, double yPos) {
+    EV << "Attack: SetConstPosition (x=" << xPos << ", y=" << yPos << ") -> " << bsm->getName() << std::endl;
+    bsm->setSenderPos(veins::Coord(xPos, yPos, (bsm->getSenderPos()).z));
 }
 
-void AttackerApp::attackSetDynamicPosition(BasicSafetyMessage* bsm) {
+void AttackerApp::attackSetDynamicPosition(veins::DemoSafetyMessage* bsm) {
     attackSetDynamicPosition(bsm, par("attackerXOffset").doubleValue(), par("attackerYOffset").doubleValue());
 }
 
-void AttackerApp::attackSetDynamicPosition(BasicSafetyMessage* bsm, double xPos, double yPos) {
+void AttackerApp::attackSetDynamicPosition(veins::DemoSafetyMessage* bsm, double xPos, double yPos) {
     double newXPos = (bsm->getSenderPos()).x + xPos;
     double newYPos = (bsm->getSenderPos()).y + yPos;
 
-    DBG_APP << "Attack: SetDynamicPosition (x=" << newXPos << ", y=" << newYPos << ")" << std::endl;
-    bsm->setSenderPos(Coord(newXPos, newYPos, (bsm->getSenderPos()).z));
+    EV_DEBUG << "Attack: SetDynamicPosition (x=" << newXPos << ", y=" << newYPos << ")" << std::endl;
+    bsm->setSenderPos(veins::Coord(newXPos, newYPos, (bsm->getSenderPos()).z));
 }
 
-void AttackerApp::attackSetRandomPosition(BasicSafetyMessage* bsm){
-    Coord randomPosition = getRandomPosition();
+void AttackerApp::attackSetRandomPosition(veins::DemoSafetyMessage* bsm){
+    veins::Coord randomPosition = getRandomPosition();
     attackSetConstPosition(bsm, randomPosition.x, randomPosition.y);
 }
 
-void AttackerApp::attackSetRandomDynamicPosition(BasicSafetyMessage* bsm) {
-    Coord randomPositionInRange = getRandomPositionInRange();
+void AttackerApp::attackSetRandomDynamicPosition(veins::DemoSafetyMessage* bsm) {
+    veins::Coord randomPositionInRange = getRandomPositionInRange();
     attackSetDynamicPosition(bsm, randomPositionInRange.x, randomPositionInRange.y);
 }
 
-void AttackerApp::attackSetCurrentPosition(BasicSafetyMessage* bsm) {
+void AttackerApp::attackSetCurrentPosition(veins::DemoSafetyMessage* bsm) {
     if(positionInitialized) {
         bsm->setSenderPos(position);
     } else {
         if(dblrand() <= std::abs(stayAtPositionProbability)) {
-            position = Coord(bsm->getSenderPos());
+            position = veins::Coord(bsm->getSenderPos());
             positionInitialized = true;
         }
     }
 }
 
-Coord AttackerApp::getRandomSpeedInRange() {
-    return Coord(uniform(attackerSpeedRangeMin, attackerSpeedRangeMax), uniform(attackerSpeedRangeMin, attackerSpeedRangeMax));
+veins::Coord AttackerApp::getRandomSpeedInRange() {
+    return veins::Coord(uniform(attackerSpeedRangeMin, attackerSpeedRangeMax), uniform(attackerSpeedRangeMin, attackerSpeedRangeMax));
 }
 
-Coord AttackerApp::getRandomPosition() {
+veins::Coord AttackerApp::getRandomPosition() {
     if(world == NULL) {
-        world = FindModule<BaseWorldUtility*>::findGlobalModule();
+        world = veins::FindModule<veins::BaseWorldUtility*>::findGlobalModule();
     }
     return world->getRandomPosition();
 }
 
-Coord AttackerApp::getRandomPositionInRange() {
-    return Coord(uniform(attackerPosRangeMin, attackerPosRangeMax), uniform(attackerPosRangeMin, attackerPosRangeMax));
+veins::Coord AttackerApp::getRandomPositionInRange() {
+    return veins::Coord(uniform(attackerPosRangeMin, attackerPosRangeMax), uniform(attackerPosRangeMin, attackerPosRangeMax));
 }

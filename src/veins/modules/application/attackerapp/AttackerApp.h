@@ -6,13 +6,12 @@
  */
 
 
-#ifndef __VEINS_ATTACKERAPP_H_
-#define __VEINS_ATTACKERAPP_H_
+#pragma once
 
 #include <omnetpp.h>
-#include <string>
+#include <veins/veins.h>
 #include "veins/modules/application/tracingapp/TracingApp.h"
-#include "veins/modules/application/ieee80211p/BaseWaveApplLayer.h"
+#include "veins/modules/application/ieee80211p/DemoBaseApplLayer.h"
 #include "veins/base/utils/FindModule.h"
 #include "veins/base/modules/BaseWorldUtility.h"
 
@@ -33,13 +32,13 @@ class AttackerApp : public TracingApp
         static int attackerTypesCount;
         static std::vector<double> attackerTypeProbability;
         static long currentAttackerCount;
-        static BaseWorldUtility *world;
+        static veins::BaseWorldUtility *world;
         bool attacker;
         double attackerPosRangeMin;
         double attackerPosRangeMax;
         double attackerSpeedRangeMin;
         double attackerSpeedRangeMax;
-        Coord position;
+        veins::Coord position;
         bool positionInitialized;
         int attackerType;
         std::string traceJSONFile;
@@ -47,29 +46,27 @@ class AttackerApp : public TracingApp
         double stayAtPositionProbability;
 
     public:
-        virtual void initialize(int stage);
+        virtual void initialize(int stage) override;
     protected:
-        virtual void handleSelfMsg(cMessage* msg);
-        virtual void populateWSM(WaveShortMessage* wsm, int rcvId=0, int serial=0);
-        virtual void handlePositionUpdate(cObject* obj);
-        virtual void attackBSM(BasicSafetyMessage* bsm);
-        virtual void attackSetConstPosition(BasicSafetyMessage* bsm);
-        virtual void attackSetConstPosition(BasicSafetyMessage* bsm, double xPos, double yPos);
-        virtual void attackSetDynamicPosition(BasicSafetyMessage* bsm);
-        virtual void attackSetDynamicPosition(BasicSafetyMessage* bsm, double xPos, double yPos);
-        virtual void attackSetRandomPosition(BasicSafetyMessage* bsm);
-        virtual void attackSetRandomDynamicPosition(BasicSafetyMessage* bsm);
-        virtual void attackSetCurrentPosition(BasicSafetyMessage* bsm);
-        virtual void attackSetConstSpeed(BasicSafetyMessage* bsm);
-        virtual void attackSetConstSpeed(BasicSafetyMessage* bsm, double xSpeed, double ySpeed);
-        virtual void attackSetRandomDynamicSpeed(BasicSafetyMessage* bsm);
-        virtual void attackSetDynamicSpeed(BasicSafetyMessage* bsm, double xSpeed, double ySpeed);
-        virtual Coord getRandomPosition();
-        virtual Coord getRandomPositionInRange();
-        virtual Coord getRandomSpeedInRange();
+        virtual void handleSelfMsg(cMessage* msg) override;
+        virtual void populateWSM(veins::BaseFrame1609_4* wsm, veins::LAddress::L2Type rcvId=0, int serial=0) override;
+        virtual void handlePositionUpdate(cObject* obj) override;
+        virtual void attackBSM(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetConstPosition(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetConstPosition(veins::DemoSafetyMessage* bsm, double xPos, double yPos);
+        virtual void attackSetDynamicPosition(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetDynamicPosition(veins::DemoSafetyMessage* bsm, double xPos, double yPos);
+        virtual void attackSetRandomPosition(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetRandomDynamicPosition(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetCurrentPosition(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetConstSpeed(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetConstSpeed(veins::DemoSafetyMessage* bsm, double xSpeed, double ySpeed);
+        virtual void attackSetRandomDynamicSpeed(veins::DemoSafetyMessage* bsm);
+        virtual void attackSetDynamicSpeed(veins::DemoSafetyMessage* bsm, double xSpeed, double ySpeed);
+        virtual veins::Coord getRandomPosition();
+        virtual veins::Coord getRandomPositionInRange();
+        virtual veins::Coord getRandomSpeedInRange();
 };
 
 long AttackerApp::currentAttackerCount = 0;
-BaseWorldUtility* AttackerApp::world = NULL;
-
-#endif
+veins::BaseWorldUtility* AttackerApp::world = NULL;

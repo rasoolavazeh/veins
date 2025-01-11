@@ -19,12 +19,12 @@
 //
 
 package org.car2x.veins.modules.application.tracingapp;
-import org.car2x.veins.modules.application.ieee80211p.BaseWaveApplLayer;
+import org.car2x.veins.modules.application.ieee80211p.DemoBaseApplLayer;
 
 //
 // network description file for your Veins Application. Add parameters here
 //
-simple TracingApp extends BaseWaveApplLayer
+simple TracingApp extends DemoBaseApplLayer
 {
     @class(TracingApp);
     string appName = default("App that traces data!");
