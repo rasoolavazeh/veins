@@ -109,19 +109,41 @@ void MyVeinsApp::onWSA(DemoServiceAdvertisment* wsa)
 
 void MyVeinsApp::handleSelfMsg(cMessage* msg)
 {
-    DemoBaseApplLayer::handleSelfMsg(msg);
     EV_DEBUG << mac->getMACAddress() << ": handleSelfMsg" << endl;
 
-    if (attacker) {
-        for (int i = 0; i < 5; i++) {
-            MyMessage* wsm = new MyMessage();
-            populateWSM(wsm);
-            wsm->setSenderAddress(mac->getMACAddress());
-            wsm->setMyData("Hello World!");
-            sendDown(wsm);
+    switch (msg->getKind()) {
+        case SEND_BEACON_EVT: {
+            if (attacker) {
+                for (int i = 0; i < 5; i++) {
+                    MyMessage* myMessage = new MyMessage();
+                    populateWSM(myMessage);
+                    myMessage->setSenderAddress(mac->getMACAddress());
+                    myMessage->setMyData("Hello World!");
+                    sendDown(myMessage);
+                }
+            } else {
+                MyMessage* myMessage = new MyMessage();
+                populateWSM(myMessage);
+                myMessage->setSenderAddress(mac->getMACAddress());
+                myMessage->setMyData("Hello World!");
+                sendDown(myMessage);
+            }
+            scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
+            break;
+        }
+        case SEND_WSA_EVT: {
+            DemoServiceAdvertisment* wsa = new DemoServiceAdvertisment();
+            populateWSM(wsa);
+            sendDown(wsa);
+            scheduleAt(simTime() + wsaInterval, sendWSAEvt);
+            break;
+        }
+        default: {
+            if (msg) EV_WARN << "APP: Error: Got Self Message of unknown kind! Name: " << msg->getName() << endl;
+            break;
         }
     }
-    scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
+        
 }
 
 void MyVeinsApp::handlePositionUpdate(cObject* obj)
