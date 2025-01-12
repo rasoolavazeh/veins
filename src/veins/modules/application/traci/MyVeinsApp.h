@@ -48,6 +48,7 @@ protected:
     long lastPacketReceiveTime;
     bool attacker;
     std::string logsFileName;
+    int packetsCountInBatch;
 
 protected:
     void onBSM(DemoSafetyMessage* bsm) override;

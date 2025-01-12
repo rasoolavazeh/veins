@@ -36,8 +36,10 @@ void MyVeinsApp::initialize(int stage)
         EV << "Initializing " << par("appName").stringValue() << std::endl;
 
         lastPacketReceiveTime = simTime().inUnit(SimTimeUnit::SIMTIME_NS);
+        packetsCountInBatch = par("packetsCountInBatch").intValue();
         attacker = (dblrand() <= par("attackerProbability").doubleValue());
 
+        EV << packetsCountInBatch << endl;
         scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
     } else if (stage == 1) {
         // Initializing members that require initialized other modules goes here
@@ -114,7 +116,7 @@ void MyVeinsApp::handleSelfMsg(cMessage* msg)
     switch (msg->getKind()) {
         case SEND_BEACON_EVT: {
             if (attacker) {
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < packetsCountInBatch; i++) {
                     MyMessage* myMessage = new MyMessage();
                     populateWSM(myMessage);
                     myMessage->setSenderAddress(mac->getMACAddress());

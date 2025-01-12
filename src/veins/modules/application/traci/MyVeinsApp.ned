@@ -32,4 +32,5 @@ simple MyVeinsApp extends DemoBaseApplLayer
     string appName = default("My first Veins App!");
     string logsFileName = default("logs.json");
     double attackerProbability = default(0);
+    int packetsCountInBatch = default(1);
 }
