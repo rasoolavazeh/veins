@@ -1,1 +1,1 @@
- lust and securecomm2018 are from (VeReMi-dataset)[https://github.com/VeReMi-dataset/veins/tree/securecomm2018] project
+ lust and securecomm2018 are from [VeReMi-dataset](https://github.com/VeReMi-dataset/veins/tree/securecomm2018) project
