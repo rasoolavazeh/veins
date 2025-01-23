@@ -19,6 +19,12 @@ examples/**/.qtenvrc
 examples/**/.cmdenv-log
 examples/**/valgrind.out
 
+simulation/results
+simulation/.tkenvrc
+simulation/.qtenvrc
+simulation/.cmdenv-log
+simulation/valgrind.out
+
 subprojects/veins_catch/out
 subprojects/veins_catch/bin/veins_catch_run
 subprojects/veins_catch/src/*.dll
