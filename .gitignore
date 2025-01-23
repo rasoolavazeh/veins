@@ -24,6 +24,8 @@ simulation/.tkenvrc
 simulation/.qtenvrc
 simulation/.cmdenv-log
 simulation/valgrind.out
+simulation/*.json
+simulation/*.csv
 
 subprojects/veins_catch/out
 subprojects/veins_catch/bin/veins_catch_run
