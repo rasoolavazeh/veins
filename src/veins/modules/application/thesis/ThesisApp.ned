@@ -33,5 +33,5 @@ simple ThesisApp extends DemoBaseApplLayer
     string appName = default("My Thesis App!");
     string csvFileName = default("messages");
     double attackerProbability = default(0);
-    int ddosMessagesCount = default(1);
+    double ddosMessageInterval = default(1s) @unit(s);
 }

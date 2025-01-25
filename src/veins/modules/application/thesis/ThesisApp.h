@@ -47,9 +47,10 @@ public:
 
 protected:
     bool attacker;
+    bool vehicleIsSaved;
     std::string csvFileName;
-    int ddosMessagesCount;
-    std::map<LAddress::L2Type, long> lastReceivedMessageIntervalPerVehicle;
+    simtime_t ddosMessageInterval;
+    std::map<LAddress::L2Type, int64_t> lastReceivedMessageTimePerVehicle;
     std::map<LAddress::L2Type, long> totalMessagesCountPerVehicle;
     std::map<LAddress::L2Type, long> totalMessagesLengthPerVehicle;
 
@@ -63,6 +64,7 @@ protected:
 
     void initCsvFile();
     void appendToCsv(NewSafetyMessage* msg);
+    void saveVehicle(LAddress::L2Type vehicleAddress);
 };
 
 } // namespace veins

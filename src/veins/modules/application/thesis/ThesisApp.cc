@@ -35,7 +35,7 @@ void ThesisApp::initialize(int stage)
         // Initializing members and pointers of your application goes here
         EV << "Initializing " << par("appName").stringValue() << std::endl;
 
-        ddosMessagesCount = par("ddosMessagesCount").intValue();
+        ddosMessageInterval = par("ddosMessageInterval");
         attacker = (dblrand() <= par("attackerProbability").doubleValue());
 
         initCsvFile();
@@ -63,13 +63,8 @@ void ThesisApp::onBSM(DemoSafetyMessage* bsm)
     totalMessagesCountPerVehicle[senderAddress]++;
     totalMessagesLengthPerVehicle[senderAddress] += safetyMessage->getBitLength();
 
-    if (lastReceivedMessageIntervalPerVehicle[senderAddress] == 0) {
-        lastReceivedMessageIntervalPerVehicle[senderAddress] = simTime().inUnit(SimTimeUnit::SIMTIME_NS);
-    } else {
-        lastReceivedMessageIntervalPerVehicle[senderAddress] = simTime().inUnit(SimTimeUnit::SIMTIME_NS) - lastReceivedMessageIntervalPerVehicle[senderAddress];
-    }
-
     appendToCsv(safetyMessage);
+    lastReceivedMessageTimePerVehicle[senderAddress] = safetyMessage->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS);
 }
 
 void ThesisApp::onWSM(BaseFrame1609_4* wsm)
@@ -90,43 +85,18 @@ void ThesisApp::handleSelfMsg(cMessage* msg)
     // this method is for self messages (mostly timers)
     // it is important to call the DemoBaseApplLayer function for BSM and WSM transmission
 
-    rapidjson::StringBuffer s;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
-    writer.StartObject();
-    if (attacker) {
-        writer.Key("attacker");
-        writer.Uint(mac->getMACAddress());
-    } else {
-        writer.Key("normal");
-        writer.Uint(mac->getMACAddress());
-    }
-    writer.EndObject();
-
-   std::ostringstream out_json; out_json << "vehicleIds.json";
-
-   std::ofstream out_stream;
-   out_stream.open(out_json.str(), std::ios_base::app);
-   if(out_stream.is_open())
-       out_stream << s.GetString() << std::endl;
-   else
-       EV_DEBUG << "Warning, logs file stream is closed";
-   out_stream.close();
-
+    saveVehicle(mac->getMACAddress());
     switch (msg->getKind()) {
         case SEND_BEACON_EVT: {
-            if (attacker) {
-                NewSafetyMessage* safetyMessage = new NewSafetyMessage();
-                populateWSM(safetyMessage);
-                safetyMessage->setSenderAddress(mac->getMACAddress());
-                sendDown(safetyMessage);
-                scheduleAt(simTime() + (beaconInterval / ddosMessagesCount), sendBeaconEvt);
-            } else {
-                NewSafetyMessage* safetyMessage = new NewSafetyMessage();
-                populateWSM(safetyMessage);
-                safetyMessage->setSenderAddress(mac->getMACAddress());
-                sendDown(safetyMessage);
+            NewSafetyMessage* safetyMessage = new NewSafetyMessage();
+            populateWSM(safetyMessage);
+            safetyMessage->setSenderAddress(mac->getMACAddress());
+            sendDown(safetyMessage);
+
+            if (attacker)
+                scheduleAt(simTime() + ddosMessageInterval, sendBeaconEvt);
+            else
                 scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
-            }
             break;
         }
         case SEND_WSA_EVT: {
@@ -187,15 +157,44 @@ void ThesisApp::appendToCsv(NewSafetyMessage* msg)
         out_stream << msg->getId() << ", "
                    << senderAddress << ", "
                    << mac->getMACAddress() << ","
-                   << msg->getSendingTime().inUnit(SimTimeUnit::SIMTIME_NS) << ", "
-                   << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_NS) << ", "
+                   << msg->getSendingTime().inUnit(SimTimeUnit::SIMTIME_MS) << ", "
+                   << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS) << ", "
                    << msg->getBitLength() << ", "
                    << msg->getByteLength() << ", "
-                   << static_cast<long>(lastReceivedMessageIntervalPerVehicle[senderAddress]) << ", "
+                   << simTime().inUnit(SimTimeUnit::SIMTIME_MS) - static_cast<int64_t>(lastReceivedMessageTimePerVehicle[senderAddress]) << ", "
                    << static_cast<long>(totalMessagesCountPerVehicle[senderAddress]) << ", "
                    << static_cast<long>(totalMessagesLengthPerVehicle[senderAddress])
                    << std::endl;
     else
         EV_DEBUG << "Warning, logs file stream is closed";
     out_stream.close();
+}
+
+void ThesisApp::saveVehicle(LAddress::L2Type vehicleAddress)
+{
+    if (!vehicleIsSaved) {
+        rapidjson::StringBuffer s;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+
+        writer.StartObject();
+        if (attacker) {
+            writer.Key("attacker");
+            writer.Uint(mac->getMACAddress());
+        } else {
+            writer.Key("normal");
+            writer.Uint(mac->getMACAddress());
+        }
+        writer.EndObject();
+
+        std::ostringstream out_json; out_json << "vehicles.json";
+        std::ofstream out_stream;
+        out_stream.open(out_json.str(), std::ios_base::app);
+        if(out_stream.is_open())
+            out_stream << s.GetString() << std::endl;
+        else
+            EV_DEBUG << "Warning, logs file stream is closed";
+        out_stream.close();
+
+        vehicleIsSaved = true;
+    }
 }
