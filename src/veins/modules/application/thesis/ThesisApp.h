@@ -25,6 +25,8 @@
 #include "veins/veins.h"
 #include "veins/modules/application/ieee80211p/DemoBaseApplLayer.h"
 #include "veins/modules/messages/thesis/NewSafetyMessage_m.h"
+#include <pybind11/embed.h>
+#include <pybind11/numpy.h>
 
 using namespace omnetpp;
 
@@ -46,6 +48,7 @@ public:
     void finish() override;
 
 protected:
+    bool attackDetectorEnabled;
     bool attacker;
     bool vehicleIsSaved;
     std::string csvFileName;
@@ -53,6 +56,8 @@ protected:
     std::map<LAddress::L2Type, int64_t> lastReceivedMessageTimePerVehicle;
     std::map<LAddress::L2Type, long> totalMessagesCountPerVehicle;
     std::map<LAddress::L2Type, long> totalMessagesLengthPerVehicle;
+    std::map<LAddress::L2Type, bool> firstMessageIsSendPerVehicle;
+    pybind11::scoped_interpreter* guard;
 
 protected:
     void onBSM(DemoSafetyMessage* bsm) override;
@@ -64,7 +69,10 @@ protected:
 
     void initCsvFile();
     void appendToCsv(NewSafetyMessage* msg);
-    void saveVehicle(LAddress::L2Type vehicleAddress);
+    void saveVehicle(LAddress::L2Type vehicleAddress, bool isAttacker);
+    void initInterpreter();
+    bool isAttack(NewSafetyMessage* msg);
+    std::string getFeatures(NewSafetyMessage* msg);
 };
 
 } // namespace veins

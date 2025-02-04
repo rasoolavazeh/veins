@@ -33,13 +33,15 @@ void ThesisApp::initialize(int stage)
     DemoBaseApplLayer::initialize(stage);
     if (stage == 0) {
         // Initializing members and pointers of your application goes here
-        EV << "Initializing " << par("appName").stringValue() << std::endl;
-
+        EV << "Initializing " << par("appName").stringValue() << endl;
+        attackDetectorEnabled = par("attackDetectorEnabled").boolValue();
         ddosMessageInterval = par("ddosMessageInterval");
         attacker = (dblrand() <= par("attackerProbability").doubleValue());
 
-        initCsvFile();
-        scheduleAt(simTime() + beaconInterval, sendBeaconEvt);
+        if (attackDetectorEnabled)
+            initInterpreter();
+        else
+            initCsvFile();
     }
     else if (stage == 1) {
         // Initializing members that require initialized other modules goes here
@@ -63,7 +65,19 @@ void ThesisApp::onBSM(DemoSafetyMessage* bsm)
     totalMessagesCountPerVehicle[senderAddress]++;
     totalMessagesLengthPerVehicle[senderAddress] += safetyMessage->getBitLength();
 
-    appendToCsv(safetyMessage);
+    if (firstMessageIsSendPerVehicle[senderAddress] == false) {
+        firstMessageIsSendPerVehicle[senderAddress] = true;
+    } else if (!attackDetectorEnabled) {
+        appendToCsv(safetyMessage);
+    }
+
+    if (attackDetectorEnabled && isAttack(safetyMessage)) {
+        EV_DEBUG << "attack" << endl;
+        lastReceivedMessageTimePerVehicle[senderAddress] = safetyMessage->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS);
+        return;
+    }
+
+    EV_DEBUG << "normal" << endl;
     lastReceivedMessageTimePerVehicle[senderAddress] = safetyMessage->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS);
 }
 
@@ -85,7 +99,9 @@ void ThesisApp::handleSelfMsg(cMessage* msg)
     // this method is for self messages (mostly timers)
     // it is important to call the DemoBaseApplLayer function for BSM and WSM transmission
 
-    saveVehicle(mac->getMACAddress());
+    if (!attackDetectorEnabled)
+        saveVehicle(mac->getMACAddress(), attacker);
+
     switch (msg->getKind()) {
         case SEND_BEACON_EVT: {
             NewSafetyMessage* safetyMessage = new NewSafetyMessage();
@@ -131,17 +147,17 @@ void ThesisApp::initCsvFile()
     std::ofstream out_stream;
     out_stream.open(csvFileName, std::ios_base::app);
     if(out_stream.is_open())
-        out_stream << "messageId" << ", "
-                   << "senderAddress" << ", "
+        out_stream << "messageId" << ","
+                   << "senderAddress" << ","
                    << "receiverAddress" << ","
-                   << "sendingTime" << ", "
-                   << "receivingTime" << ", "
-                   << "bitLength" << ", "
-                   << "byteLength" << ", "
-                   << "lastReceivedMessageInterval" << ", "
-                   << "totalMessagesCount" << ", "
+                   << "sendingTime" << ","
+                   << "receivingTime" << ","
+                   << "bitLength" << ","
+                   << "byteLength" << ","
+                   << "lastReceivedMessageInterval" << ","
+                   << "totalMessagesCount" << ","
                    << "totalMessagesLength"
-                   << std::endl;
+                   << endl;
     else
         EV_DEBUG << "Warning, logs file stream is closed";
     out_stream.close();
@@ -154,47 +170,80 @@ void ThesisApp::appendToCsv(NewSafetyMessage* msg)
     std::ofstream out_stream;
     out_stream.open(csvFileName, std::ios_base::app);
     if(out_stream.is_open())
-        out_stream << msg->getId() << ", "
-                   << senderAddress << ", "
+        out_stream << msg->getId() << ","
+                   << senderAddress << ","
                    << mac->getMACAddress() << ","
-                   << msg->getSendingTime().inUnit(SimTimeUnit::SIMTIME_MS) << ", "
-                   << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS) << ", "
-                   << msg->getBitLength() << ", "
-                   << msg->getByteLength() << ", "
-                   << simTime().inUnit(SimTimeUnit::SIMTIME_MS) - static_cast<int64_t>(lastReceivedMessageTimePerVehicle[senderAddress]) << ", "
-                   << static_cast<long>(totalMessagesCountPerVehicle[senderAddress]) << ", "
+                   << msg->getSendingTime().inUnit(SimTimeUnit::SIMTIME_MS) << ","
+                   << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS) << ","
+                   << msg->getBitLength() << ","
+                   << msg->getByteLength() << ","
+                   << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS) - static_cast<int64_t>(lastReceivedMessageTimePerVehicle[senderAddress]) << ","
+                   << static_cast<long>(totalMessagesCountPerVehicle[senderAddress]) << ","
                    << static_cast<long>(totalMessagesLengthPerVehicle[senderAddress])
-                   << std::endl;
+                   << endl;
     else
         EV_DEBUG << "Warning, logs file stream is closed";
     out_stream.close();
 }
 
-void ThesisApp::saveVehicle(LAddress::L2Type vehicleAddress)
+void ThesisApp::saveVehicle(LAddress::L2Type vehicleAddress, bool isAttacker)
 {
-    if (!vehicleIsSaved) {
-        rapidjson::StringBuffer s;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+    rapidjson::StringBuffer s;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
 
-        writer.StartObject();
-        if (attacker) {
-            writer.Key("attacker");
-            writer.Uint(mac->getMACAddress());
-        } else {
-            writer.Key("normal");
-            writer.Uint(mac->getMACAddress());
-        }
-        writer.EndObject();
-
-        std::ostringstream out_json; out_json << "vehicles.json";
-        std::ofstream out_stream;
-        out_stream.open(out_json.str(), std::ios_base::app);
-        if(out_stream.is_open())
-            out_stream << s.GetString() << std::endl;
-        else
-            EV_DEBUG << "Warning, logs file stream is closed";
-        out_stream.close();
-
-        vehicleIsSaved = true;
+    writer.StartObject();
+    if (isAttacker) {
+        writer.Key("attacker");
+        writer.Uint(vehicleAddress);
+    } else {
+        writer.Key("normal");
+        writer.Uint(vehicleAddress);
     }
+    writer.EndObject();
+
+    std::ostringstream out_json; out_json << "vehicles.json";
+    std::ofstream out_stream;
+    out_stream.open(out_json.str(), std::ios_base::app);
+    if(out_stream.is_open())
+        out_stream << s.GetString() << endl;
+    else
+        EV_DEBUG << "Warning, logs file stream is closed";
+    out_stream.close();
+}
+
+void ThesisApp::initInterpreter()
+{
+    if (!Py_IsInitialized()) {
+        guard = new pybind11::scoped_interpreter();
+        pybind11::module_ predictor = pybind11::module_::import("predictor");
+        predictor.attr("init")();
+    }
+}
+
+bool ThesisApp::isAttack(NewSafetyMessage* msg)
+{
+    std::string features = getFeatures(msg);
+    pybind11::module_ predictor = pybind11::module_::import("predictor");
+    int result = predictor.attr("predict")(features).cast<int>();
+    
+    EV << result << endl;
+    if (result)
+        return true;
+    return false;
+}
+
+std::string ThesisApp::getFeatures(NewSafetyMessage* msg)
+{
+    pybind11::module_ np = pybind11::module_::import("numpy");
+    LAddress::L2Type senderAddress = msg->getSenderAddress();
+    std::ostringstream oss;
+    oss << msg->getId() << ","
+        << senderAddress << ","
+        << mac->getMACAddress() << ","
+        << msg->getSendingTime().inUnit(SimTimeUnit::SIMTIME_MS) << ","
+        << msg->getArrivalTime().inUnit(SimTimeUnit::SIMTIME_MS) << ","
+        << simTime().inUnit(SimTimeUnit::SIMTIME_MS) - static_cast<int64_t>(lastReceivedMessageTimePerVehicle[senderAddress]) << ","
+        << static_cast<long>(totalMessagesCountPerVehicle[senderAddress]) << ","
+        << static_cast<long>(totalMessagesLengthPerVehicle[senderAddress]);
+    return oss.str();
 }
