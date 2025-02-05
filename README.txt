@@ -17,3 +17,9 @@ do not include license text shall be assumed to allow the Creative Commons
 (SPDX-License-Identifier: GPL-2.0-or-later OR CC-BY-SA-4.0). Full license texts
 are available with the source distribution.
 
+- If the project got error on Python.h add lines below to Makefile exists in /src between lines OMNETPP_LIBS and COPTS
+	# Add Pybind11 headers to CFLAGS
+	CFLAGS += $(shell python3 -m pybind11 --includes)
+
+	# Link Python library for Pybind11
+	LDFLAGS += -lpython3.x # x is version
