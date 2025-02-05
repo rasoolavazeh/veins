@@ -49,6 +49,7 @@ public:
 
 protected:
     bool attackDetectorEnabled;
+    std::string attackDetectorName;
     bool attacker;
     bool vehicleIsSaved;
     std::string csvFileName;

@@ -38,9 +38,10 @@ void ThesisApp::initialize(int stage)
         ddosMessageInterval = par("ddosMessageInterval");
         attacker = (dblrand() <= par("attackerProbability").doubleValue());
 
-        if (attackDetectorEnabled)
+        if (attackDetectorEnabled) {
+            attackDetectorName = par("attackDetectorName").stdstringValue();
             initInterpreter();
-        else
+        } else
             initCsvFile();
     }
     else if (stage == 1) {
@@ -214,17 +215,24 @@ void ThesisApp::saveVehicle(LAddress::L2Type vehicleAddress, bool isAttacker)
 void ThesisApp::initInterpreter()
 {
     if (!Py_IsInitialized()) {
+        EV << "INITIALIZE" << endl;
+        EV << attackDetectorName << endl;
+        EV << attackDetectorName.c_str() << endl;
         guard = new pybind11::scoped_interpreter();
-        pybind11::module_ predictor = pybind11::module_::import("predictor");
-        predictor.attr("init")();
+        pybind11::module_ attackDetector = pybind11::module_::import(attackDetectorName.c_str());
+        attackDetector.attr("initialize")();
     }
 }
 
 bool ThesisApp::isAttack(NewSafetyMessage* msg)
 {
+    EV << "BSM" << endl;
+    EV << attackDetectorName << endl;
+    EV << attackDetectorName.c_str() << endl;
+
     std::string features = getFeatures(msg);
-    pybind11::module_ predictor = pybind11::module_::import("predictor");
-    int result = predictor.attr("predict")(features).cast<int>();
+    pybind11::module_ attackDetector = pybind11::module_::import(attackDetectorName.c_str());
+    int result = attackDetector.attr("predict")(features).cast<int>();
     
     EV << result << endl;
     if (result)

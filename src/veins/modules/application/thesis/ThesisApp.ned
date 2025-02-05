@@ -35,4 +35,5 @@ simple ThesisApp extends DemoBaseApplLayer
     double attackerProbability = default(0);
     double ddosMessageInterval = default(1s) @unit(s);
     bool attackDetectorEnabled = default(false);
+    string attackDetectorName = default("AttackDetector");
 }
